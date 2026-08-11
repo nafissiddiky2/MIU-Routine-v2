@@ -140,7 +140,7 @@ function getBatchFromId(studentId) {
     const match2 = id.match(/^(\d{3})/);
     if (match2) {
         const prefix = match2[1];
-        const batchMap = {'015': '61', '016': '62', '017': '63'};
+        const batchMap = {'015': '61', '015': '62'};
         return batchMap[prefix] || prefix;
     }
     return '00';
