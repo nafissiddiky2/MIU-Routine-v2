@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - MIU Routine System v2</title>
+    <link rel="icon" type="image/png" href="images/manarat.png">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="auth-card">
+            <div class="logo">
+                <div class="auth-logo">
+                    <img src="images/manarat.png" alt="MIU">
+                    <h1>Register</h1>
+                </div>
+                <p>Create your account</p>
+                <p style="font-size:0.85em;color:#888;">Manarat International University</p>
+            </div>
+            <form id="registerForm">
+                <div class="form-group">
+                    <label for="studentId">Student ID</label>
+                    <input type="text" id="studentId" placeholder="e.g., 2465cse01176" required>
+                </div>
+                <div class="form-group">
+                    <label for="batch">Select Batch</label>
+                    <select id="batch" required>
+                        <option value="">-- Select Your Batch --</option>
+                        <option value="60(F)">Batch 60 (Female)</option>
+                        <option value="60(M)">Batch 60 (Male)</option>
+                        <option value="61">Batch 61</option>
+                        <option value="62">Batch 62</option>
+                        <option value="63">Batch 63</option>
+                        <option value="64">Batch 64</option>
+                        <option value="65">Batch 65</option>
+                        <option value="66">Batch 66</option>
+                        <option value="67(F)">Batch 67 (Female)</option>
+                        <option value="67(M)">Batch 67 (Male)</option>
+                        <option value="68">Batch 68</option>
+                        <option value="69">Batch 69</option>
+                        <option value="70(F)">Batch 70 (Female)</option>
+                        <option value="70(M)">Batch 70 (Male)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="email">Gmail</label>
+                    <input type="email" id="email" placeholder="your.email@gmail.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="phone">Phone Number</label>
+                    <input type="tel" id="phone" placeholder="01XXXXXXXXX" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" placeholder="Min 6 characters" required minlength="6">
+                </div>
+                <div class="form-group">
+                    <label for="confirmPassword">Confirm Password</label>
+                    <input type="password" id="confirmPassword" placeholder="Confirm password" required minlength="6">
+                </div>
+                <button type="submit" class="btn btn-primary">Register</button>
+            </form>
+            <div class="auth-footer">
+                <p>Already have an account? <a href="login.html">Login here</a></p>
+            </div>
+            <div id="errorMessage" class="error-message"></div>
+        </div>
+    </div>
+    <footer class="footer">
+        <p>&copy; 2026 MIU CSE Department | <a href="https://nafissiddiky2.github.io/Portfolio/">S.A.Nafis</a></p>
+    </footer>
+
+    <script src="https://www.gstatic.com/firebasejs/10.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore-compat.js"></script>
+    <script src="js/firebase-config.js"></script>
+    <script src="js/auth.js"></script>
+</body>
+</html>

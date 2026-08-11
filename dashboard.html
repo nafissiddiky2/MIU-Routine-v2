@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - MIU Routine v2</title>
+    <link rel="icon" type="image/png" href="images/manarat.png">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand"><img src="images/manarat.png" alt="MIU"> MIU CSE Routine v2</div>
+            <div class="nav-user"><span id="userInfo">Loading...</span><button id="logoutBtn" class="btn btn-outline">Sign Out</button></div>
+        </div>
+    </nav>
+    <div class="dashboard-container">
+        <div class="search-section">
+            <div class="date-navigator">
+                <button id="prevDayBtn" class="btn btn-outline">Yesterday</button>
+                <h2 id="currentDay">Today</h2>
+                <button id="nextDayBtn" class="btn btn-outline">Tomorrow</button>
+            </div>
+            <div class="filter-section">
+                <h3 style="margin-bottom:15px;color:#2d6a4f;">Filter Class Schedule</h3>
+                <div class="search-boxes">
+                    <div class="search-box"><label>Batch</label><select id="searchBatch"><option value="">My Batch</option></select></div>
+                    <div class="search-box"><label>Room</label><select id="searchRoom"><option value="">All Rooms</option></select></div>
+                    <div class="search-box"><label>Teacher</label><select id="searchTeacher"><option value="">All Teachers</option></select></div>
+                    <button id="resetBtn" class="btn btn-outline">Reset</button>
+                </div>
+            </div>
+        </div>
+        <div class="routine-display">
+            <div class="routine-header"><h3>Schedule - <span id="displayDay"></span></h3><span id="batchInfo">Your Batch</span></div>
+            <div id="routineTable" class="routine-table"><div class="loading"><div class="spinner"></div><p>Loading...</p></div></div>
+        </div>
+    </div>
+    <footer class="footer"><p>&copy; 2026 MIU CSE Department | <a href="https://nafissiddiky2.github.io/Portfolio/">S.A.Nafis</a></p></footer>
+
+    <script>
+    var SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQovxGy5N4TVqkJESrtQaaW20hhzqyppbgDKsiZs11fJp7pQoDfnaYjjhG5xcL6wXkijYF4Hi8FO36g/pub?output=csv&gid=350123385';
+    var teacherNames = {DMR:'Prof. Dr. Mizanur Rahman',DRA:'Prof. Dr. Ramit Azad',MRI:'Mohammad Rafiqul Islam',TA:'Tanvir Ahmed',ZH:'Zahurul Haque',JF:'Jannatul Ferdaous',NET:'Noor Easrib Tiba',SA:'Soaib Abdullah',HR:'Hasibul Rupok',MH:'Maoyejatun Hasana',MMU:'Mohammad Monzu Uddin',TK:'Tahsin Kabir',AAA:'Ahmad Abdullah Arman',MAS:'MD. Adam Shafiullah'};
+    var currentDate = new Date(), currentBatch = '', currentBatchDisplay = '', allRoutines = [];
+    var days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+    function to12h(t){var p=t.split(':'),h=parseInt(p[0]),m=p[1],a=h>=12?'PM':'AM',h12=h>12?h-12:(h===0?12:h);return h12+':'+m+' '+a;}
+    function formatTime(t){var p=t.split('-');return to12h(p[0])+' - '+to12h(p[1]||p[0]);}
+    function timeToMinutes(t){var p=t.split('-')[0].trim().split(':');return parseInt(p[0])*60+parseInt(p[1]);}
+
+    function parseCSV(csv) {
+        var lines = csv.split('\n'), routines = [], dayMap = {sat:'Saturday',sun:'Sunday',mon:'Monday',tue:'Tuesday',wed:'Wednesday',thu:'Thursday',fri:'Friday'}, timeSlots = [];
+        var curDay = '';
+        for (var i = 0; i < lines.length; i++) {
+            var line = lines[i].trim();
+            if (!line) continue;
+            var cells = [], c = '', q = false;
+            for (var j = 0; j < line.length; j++) {
+                if (line[j] === '"') q = !q;
+                else if (line[j] === ',' && !q) { cells.push(c.trim()); c = ''; }
+                else c += line[j];
+            }
+            cells.push(c.trim());
+            var f = cells[0].toLowerCase().trim();
+            if (f === 'abbreviation') break;
+            if (f.startsWith('..........') || f.includes('jannatul')) break;
+            if (cells[0] === 'Day' && cells[1] === 'Room') {
+                for (var k = 2; k < cells.length; k++) {
+                    if (cells[k] && cells[k].includes(':')) timeSlots.push(cells[k]);
+                }
+                continue;
+            }
+            if (f.includes('manarat') || f.includes('class routine') || f.includes('updated on')) continue;
+            if (dayMap[f]) { curDay = dayMap[f]; }
+            if (curDay && cells.length >= 3 && cells[1] && timeSlots.length > 0) {
+                var room = cells[1];
+                for (var j2 = 2; j2 < cells.length && j2-2 < timeSlots.length; j2++) {
+                    var d = cells[j2] ? cells[j2].trim() : '';
+                    if (!d) continue;
+                    var cl = d.replace(/^\(/,'').replace(/\)$/,'').replace(/\)\s+([A-Z])/g,')/$1');
+                    var parts = cl.split('/');
+                    if (parts.length < 2) continue;
+                    var bp = parts[0].trim(), course = '', teacher = '';
+                    if (parts.length === 2) course = parts[1].trim();
+                    else if (parts.length === 3) { course = parts[1].trim(); teacher = parts[2].trim(); }
+                    else if (parts.length === 4) { course = parts[1]+'/'+parts[2]; teacher = parts[3].trim(); }
+                    if (!course) continue;
+                    var tokens = bp.split('+').map(function(t){return t.trim();}).filter(Boolean);
+                    for (var t2 = 0; t2 < tokens.length; t2++) {
+                        var m = tokens[t2].match(/^(\d+)(\([FM]\))?/);
+                        if (m) routines.push({day:curDay, time:timeSlots[j2-2], startMin:timeToMinutes(timeSlots[j2-2]), batch:m[1], batchDisplay:m[1]+(m[2]||''), course:course, room:room, teacher:teacher});
+                    }
+                }
+            }
+        }
+        return routines;
+    }
+
+    function mergeConsecutive(routines) {
+        if (!routines.length) return [];
+        routines.sort(function(a,b){return a.startMin - b.startMin;});
+        var merged = [], prev = null;
+        for (var i = 0; i < routines.length; i++) {
+            var r = routines[i];
+            if (prev && prev.course === r.course && prev.batch === r.batch && prev.room === r.room && prev.teacher === r.teacher && r.startMin === prev.startMin + 60) {
+                var pp = prev.time.split('-'), rp = r.time.split('-');
+                prev.time = pp[0].trim() + ' - ' + rp[1].trim();
+            } else {
+                if (prev) merged.push(prev);
+                prev = {day:r.day, time:r.time, startMin:r.startMin, batch:r.batch, batchDisplay:r.batchDisplay, course:r.course, room:r.room, teacher:r.teacher};
+            }
+        }
+        if (prev) merged.push(prev);
+        return merged;
+    }
+
+    function fetchRoutineData() {
+        fetch(SHEET_CSV_URL).then(function(r){return r.text();}).then(function(csv){
+            allRoutines = parseCSV(csv);
+            console.log('Loaded '+allRoutines.length+' routines');
+            populateDropdowns();
+            loadRoutine();
+        }).catch(function(e){console.error(e);});
+    }
+
+    function populateDropdowns() {
+        var ba = []; allRoutines.forEach(function(r){if(ba.indexOf(r.batchDisplay)===-1)ba.push(r.batchDisplay);}); ba.sort();
+        var ro = []; allRoutines.forEach(function(r){if(r.room&&ro.indexOf(r.room)===-1)ro.push(r.room);}); ro.sort();
+        var te = []; allRoutines.forEach(function(r){if(r.teacher&&te.indexOf(r.teacher)===-1)te.push(r.teacher);}); te.sort();
+        
+        var bs = document.getElementById('searchBatch');
+        bs.innerHTML = '<option value="">My Batch</option>';
+        for(var i=0;i<ba.length;i++){bs.innerHTML+='<option value="'+ba[i]+'">Batch '+ba[i]+'</option>';}
+        
+        var rs = document.getElementById('searchRoom');
+        rs.innerHTML = '<option value="">All Rooms</option>';
+        for(var i=0;i<ro.length;i++){rs.innerHTML+='<option value="'+ro[i]+'">'+ro[i]+'</option>';}
+        
+        var ts = document.getElementById('searchTeacher');
+        ts.innerHTML = '<option value="">All Teachers</option>';
+        for(var i=0;i<te.length;i++){ts.innerHTML+='<option value="'+te[i]+'">'+te[i]+' - '+(teacherNames[te[i]]||te[i])+'</option>';}
+    }
+
+    function onFilterChange() {
+        var b = document.getElementById('searchBatch').value;
+        var r = document.getElementById('searchRoom').value;
+        var t = document.getElementById('searchTeacher').value;
+        if(b){document.getElementById('searchRoom').value='';document.getElementById('searchTeacher').value='';}
+        if(r){document.getElementById('searchBatch').value='';document.getElementById('searchTeacher').value='';}
+        if(t){document.getElementById('searchBatch').value='';document.getElementById('searchRoom').value='';}
+        loadRoutine();
+    }
+
+    function loadRoutine() {
+        var day = days[currentDate.getDay()];
+        var sb = document.getElementById('searchBatch').value;
+        var sr = document.getElementById('searchRoom').value;
+        var st = document.getElementById('searchTeacher').value;
+        var bi = document.getElementById('batchInfo');
+        if(st)bi.textContent='Teacher: '+st;
+        else if(sr)bi.textContent='Room: '+sr;
+        else if(sb)bi.textContent='Batch: '+sb;
+        else bi.textContent='Your Batch: '+currentBatchDisplay;
+        
+        var d = [];
+        for(var i=0;i<allRoutines.length;i++){if(allRoutines[i].day===day)d.push(allRoutines[i]);}
+        if(sb){var d2=[];for(var i=0;i<d.length;i++){if(d[i].batchDisplay===sb)d2.push(d[i]);}d=d2;}
+        else if(sr){var d2=[];for(var i=0;i<d.length;i++){if(d[i].room===sr)d2.push(d[i]);}d=d2;}
+        else if(st){var d2=[];for(var i=0;i<d.length;i++){if(d[i].teacher===st)d2.push(d[i]);}d=d2;}
+        else {var d2=[];for(var i=0;i<d.length;i++){if(d[i].batchDisplay===currentBatchDisplay||d[i].batch===currentBatch)d2.push(d[i]);}d=d2;}
+        
+        d = mergeConsecutive(d);
+        d.sort(function(a,b){return a.startMin - b.startMin;});
+        displayRoutine(d, day);
+    }
+
+    function displayRoutine(routines, day) {
+        var t = document.getElementById('routineTable');
+        if (!routines.length) {
+            t.innerHTML = '<div class="no-data"><p style="font-size:3em;">?</p><p>No classes for '+day+'</p></div>';
+            return;
+        }
+        var html = '<table><thead><tr><th>Time</th><th>Course</th><th>Batch</th><th>Room</th><th>Teacher</th></tr></thead><tbody>';
+        for(var i=0;i<routines.length;i++){
+            var r = routines[i];
+            html += '<tr><td class="time-cell">'+formatTime(r.time)+'</td><td><strong>'+r.course+'</strong></td><td><span class="batch-badge">Batch '+r.batchDisplay+'</span></td><td>'+(r.room?'<span class="room-badge">'+r.room+'</span>':'TBA')+'</td><td>'+(r.teacher?'<span class="teacher-badge">'+r.teacher+'</span>':'TBA')+'</td></tr>';
+        }
+        html += '</tbody></table>';
+        t.innerHTML = html;
+    }
+
+    function changeDay(o) { currentDate.setDate(currentDate.getDate()+o); updateDateDisplay(); loadRoutine(); }
+    function resetFilter() { document.getElementById('searchBatch').value=''; document.getElementById('searchRoom').value=''; document.getElementById('searchTeacher').value=''; currentDate=new Date(); updateDateDisplay(); loadRoutine(); }
+    function updateDateDisplay() { document.getElementById('currentDay').textContent = currentDate.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'}); document.getElementById('displayDay').textContent = days[currentDate.getDay()]; }
+
+    // Attach all events
+    document.getElementById('prevDayBtn').onclick = function(){changeDay(-1);};
+    document.getElementById('nextDayBtn').onclick = function(){changeDay(1);};
+    document.getElementById('searchBatch').onchange = onFilterChange;
+    document.getElementById('searchRoom').onchange = onFilterChange;
+    document.getElementById('searchTeacher').onchange = onFilterChange;
+    document.getElementById('resetBtn').onclick = resetFilter;
+    document.getElementById('logoutBtn').onclick = function(){localStorage.removeItem('miu_user');window.location.href='login.html';};
+
+    // Init
+    var ud = localStorage.getItem('miu_user');
+    if (ud) {
+        var u = JSON.parse(ud);
+        currentBatch = u.batch ? String(u.batch).replace(/\([FM]\)/,'') : '00';
+        currentBatchDisplay = u.batch || currentBatch;
+        document.getElementById('userInfo').textContent = 'Batch: '+currentBatchDisplay+' | ID: '+u.student_id;
+        document.getElementById('batchInfo').textContent = 'Your Batch: '+currentBatchDisplay;
+        updateDateDisplay();
+        fetchRoutineData();
+    } else {
+        window.location.href = 'login.html';
+    }
+    </script>
+</body>
+</html>

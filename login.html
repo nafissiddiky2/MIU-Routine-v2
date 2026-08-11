@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - MIU Routine System v2</title>
+    <link rel="icon" type="image/png" href="images/manarat.png">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="auth-card">
+            <div class="logo">
+                <div class="auth-logo">
+                    <img src="images/manarat.png" alt="MIU">
+                    <h1>MIU Routine v2</h1>
+                </div>
+                <p>Department of Computer Science & Engineering</p>
+                <p style="font-size:0.85em;color:#888;">Manarat International University</p>
+            </div>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="studentId">Student ID</label>
+                    <input type="text" id="studentId" placeholder="e.g., 2465cse01176" required>
+                    <small style="color:#888;font-size:0.8em;">⚠️ Skip leading zero if ID starts with one</small>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" placeholder="Enter password" required>
+                </div>
+                <div style="text-align:right;margin-top:-10px;margin-bottom:15px;">
+                    <a href="forgot-password.html" style="color:#2d6a4f;font-size:0.9em;">Forgot Password?</a>
+                </div>
+                <div class="form-group checkbox-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="rememberMe">
+                        <span>Keep me logged in for 15 days</span>
+                    </label>
+                </div>
+                <button type="submit" class="btn btn-primary">Login</button>
+            </form>
+            <div class="auth-footer">
+                <p>Don't have an account? <a href="register.html">Register here</a></p>
+            </div>
+            <div id="errorMessage" class="error-message"></div>
+        </div>
+    </div>
+    <footer class="footer">
+        <p>&copy; 2026 MIU CSE Department | <a href="https://nafissiddiky2.github.io/Portfolio/">S.A.Nafis</a></p>
+    </footer>
+
+    <script src="https://www.gstatic.com/firebasejs/10.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore-compat.js"></script>
+    <script src="js/firebase-config.js"></script>
+    <script src="js/auth.js"></script>
+</body>
+</html>

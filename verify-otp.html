@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify OTP - MIU Routine v2</title>
+    <link rel="icon" type="image/png" href="images/manarat.png">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="auth-card">
+            <div class="logo"><h1>Verify OTP</h1><p>Enter the 6-digit code</p></div>
+            <form id="otpForm">
+                <div class="form-group"><label>OTP Code</label><input type="text" id="otp" placeholder="6-digit OTP" maxlength="6" required></div>
+                <button type="submit" class="btn btn-primary">Verify</button>
+            </form>
+            <div class="auth-footer"><p><a href="forgot-password.html">← Resend</a></p></div>
+            <div id="messageBox" class="error-message"></div>
+        </div>
+    </div>
+    <footer class="footer"><p>&copy; 2026 MIU CSE Department | <a href="https://nafissiddiky2.github.io/Portfolio/">S.A.Nafis</a></p></footer>
+
+    <script src="https://www.gstatic.com/firebasejs/10.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore-compat.js"></script>
+    <script src="js/firebase-config.js"></script>
+    <script>
+        const sid = new URLSearchParams(window.location.search).get('id');
+        document.getElementById('otpForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const otp = document.getElementById('otp').value.trim();
+            const msg = document.getElementById('messageBox');
+            const btn = e.target.querySelector('button');
+            if (otp.length !== 6) { msg.textContent = 'Enter 6-digit OTP'; msg.classList.add('show'); return; }
+            btn.disabled = true; btn.textContent = 'Verifying...';
+            const result = await verifyOTP(sid, otp);
+            if (result.success) {
+                window.location.href = 'reset-password.html?id=' + sid;
+            } else {
+                msg.textContent = result.error; msg.classList.add('show');
+                btn.disabled = false; btn.textContent = 'Verify';
+            }
+        });
+    </script>
+</body>
+</html>
