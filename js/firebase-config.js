@@ -15,34 +15,62 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
+// Google Apps Script URL for email sending
+const SHEET_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwBWvZwGInAHXEYFXvlqlSengGXNxY5hbRV9h7D2WCe16pXVj_J_1R9oMXxJCRCBoEcLQ/exec';
+
 // ============================================
 // DATABASE FUNCTIONS
 // ============================================
 
-// Register new student
+// Register new student (Firebase + Google Sheet)
 async function registerStudent(studentId, email, phone, batch, password) {
     try {
+        // Check Firebase first
         const docRef = db.collection('students').doc(studentId);
         const doc = await docRef.get();
         if (doc.exists) {
             return { success: false, error: 'Student ID already registered' };
         }
+        
+        // Save to Firebase (hashed password)
         await docRef.set({
             student_id: studentId,
             email: email,
             phone: phone,
             batch: batch,
             batch_number: batch.replace(/\([FM]\)/, '').trim(),
-            password: password,
+            password: password, // Already hashed from auth.js
             created_at: firebase.firestore.FieldValue.serverTimestamp()
         });
+        
+        // Also save to Google Sheet (ID + Email + Hashed Password only, for email sending)
+        saveToSheetForEmail(studentId, email, password);
+        
         return { success: true, message: 'Registered successfully' };
     } catch (error) {
         return { success: false, error: error.message };
     }
 }
 
-// Login student
+// Save email, ID & hashed password to Google Sheet
+async function saveToSheetForEmail(studentId, email, hashedPassword) {
+    try {
+        await fetch(SHEET_SCRIPT_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({
+                action: 'register_email_only',
+                student_id: studentId,
+                email: email,
+                password: hashedPassword
+            })
+        });
+    } catch (e) {
+        console.log('Sheet sync skipped');
+    }
+}
+
+// Login student (Firebase only)
 async function loginStudent(studentId, password) {
     try {
         const docRef = db.collection('students').doc(studentId);
@@ -66,7 +94,7 @@ async function loginStudent(studentId, password) {
     }
 }
 
-// Reset password
+// Reset password (Firebase only)
 async function resetStudentPassword(studentId, newPassword) {
     try {
         const docRef = db.collection('students').doc(studentId);
@@ -75,13 +103,34 @@ async function resetStudentPassword(studentId, newPassword) {
             return { success: false, error: 'Student ID not found' };
         }
         await docRef.update({ password: newPassword });
+        
+        // Also update in Google Sheet
+        updatePasswordInSheet(studentId, newPassword);
+        
         return { success: true, message: 'Password reset successfully' };
     } catch (error) {
         return { success: false, error: error.message };
     }
 }
 
-// Find student by ID (for forgot password)
+// Update password in Google Sheet
+async function updatePasswordInSheet(studentId, newPassword) {
+    try {
+        await fetch(SHEET_SCRIPT_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({
+                action: 'update_password',
+                student_id: studentId,
+                new_password: newPassword
+            })
+        });
+    } catch (e) {
+        console.log('Sheet password update skipped');
+    }
+}
+
+// Find student by ID (Firebase)
 async function findStudentById(studentId) {
     try {
         const docRef = db.collection('students').doc(studentId);
@@ -93,32 +142,22 @@ async function findStudentById(studentId) {
     }
 }
 
-// Store OTP temporarily
-async function storeOTP(studentId, otp) {
-    await db.collection('otps').doc(studentId).set({
-        otp: otp,
-        created_at: firebase.firestore.FieldValue.serverTimestamp(),
-        expires_at: new Date(Date.now() + 10 * 60 * 1000)
-    });
-}
-
-// Verify OTP
-async function verifyOTP(studentId, otp) {
-    const docRef = db.collection('otps').doc(studentId);
-    const doc = await docRef.get();
-    if (!doc.exists) return { success: false, error: 'No OTP requested' };
-    const data = doc.data();
-    if (data.expires_at.toDate() < new Date()) {
-        await docRef.delete();
-        return { success: false, error: 'OTP expired' };
+// Send OTP via Google Apps Script (sheet handles everything)
+async function sendOTPFromSheet(studentId) {
+    try {
+        const res = await fetch(SHEET_SCRIPT_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({
+                action: 'forgot_password',
+                student_id: studentId
+            })
+        });
+        return await res.json();
+    } catch (e) {
+        return { success: false, error: 'Connection error' };
     }
-    if (data.otp === otp) {
-        await docRef.delete();
-        return { success: true, message: 'OTP verified' };
-    }
-    return { success: false, error: 'Invalid OTP' };
 }
-
 // ============================================
 // UTILITY FUNCTIONS
 // ============================================
