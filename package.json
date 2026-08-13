@@ -1,0 +1,14 @@
+{
+  "name": "miu-routine-v2",
+  "version": "2.0.0",
+  "description": "MIU CSE Routine System with Firebase",
+  "scripts": {
+    "test": "jest",
+    "test:e2e": "cypress open"
+  },
+  "devDependencies": {
+    "cypress": "^13.0.0",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^30.4.1"
+  }
+}
