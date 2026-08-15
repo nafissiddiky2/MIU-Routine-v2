@@ -16,7 +16,7 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 // Google Apps Script URL for email sending
-const SHEET_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwBWvZwGInAHXEYFXvlqlSengGXNxY5hbRV9h7D2WCe16pXVj_J_1R9oMXxJCRCBoEcLQ/exec';
+const SHEET_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyaaH0K_rl8Kzbox5Xt__QoczAUTG3hSFPSPzxyicIPgQuDiPRUFTvdan3esQ_kcXm1/exec';
 
 // ============================================
 // DATABASE FUNCTIONS
@@ -44,7 +44,7 @@ async function registerStudent(studentId, email, phone, batch, password) {
         });
         
         // Also save to Google Sheet (ID + Email + Hashed Password only, for email sending)
-        saveToSheetForEmail(studentId, email, password);
+        saveToSheetForEmail(studentId, email);
         
         return { success: true, message: 'Registered successfully' };
     } catch (error) {
@@ -52,8 +52,7 @@ async function registerStudent(studentId, email, phone, batch, password) {
     }
 }
 
-// Save email, ID & hashed password to Google Sheet
-async function saveToSheetForEmail(studentId, email, hashedPassword) {
+async function saveToSheetForEmail(studentId, email) {
     try {
         await fetch(SHEET_SCRIPT_URL, {
             method: 'POST',
@@ -61,15 +60,13 @@ async function saveToSheetForEmail(studentId, email, hashedPassword) {
             body: JSON.stringify({
                 action: 'register_email_only',
                 student_id: studentId,
-                email: email,
-                password: hashedPassword
+                email: email
             })
         });
     } catch (e) {
         console.log('Sheet sync skipped');
     }
 }
-
 // Login student (Firebase only)
 async function loginStudent(studentId, password) {
     try {
